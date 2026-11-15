@@ -1,0 +1,60 @@
+name: Sync Shay toolchain
+
+on:
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-pin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Shay-Claude
+        uses: actions/checkout@v4
+      - name: Check for a newer Shay commit
+        id: upstream
+        shell: bash
+        run: |
+          latest="$(git ls-remote https://github.com/theprojectcreatorof2amthoughts/Shay.git refs/heads/main | awk '{print $1}')"
+          current="$(sed -n 's/^SHAY_COMMIT=//p' toolchain.lock)"
+          if [ -z "$latest" ]; then
+            echo "Could not resolve upstream Shay main" >&2
+            exit 1
+          fi
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$latest" = "$current" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Shay-Claude already pins the latest upstream main commit."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            sed -i "s/^SHAY_COMMIT=.*/SHAY_COMMIT=$latest/" toolchain.lock
+          fi
+      - name: Open toolchain update pull request
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.upstream.outputs.latest }}
+        shell: bash
+        run: |
+          branch="bot/update-shay-${LATEST:0:12}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add toolchain.lock
+          git commit -m "chore: update pinned Shay toolchain"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Update branch already exists; leaving it for review."
+            exit 0
+          fi
+          git push origin "$branch"
+          gh pr create \
+            --title "chore: update pinned Shay toolchain" \
+            --body "Updates the pinned Shay source revision to `$LATEST`.
+
+The PR's CI builds the pinned upstream revision and runs Shay's test suite before this update can be merged." \
+            --base main \
+            --head "$branch"
