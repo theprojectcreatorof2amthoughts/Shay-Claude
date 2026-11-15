@@ -1,0 +1,4 @@
+# Shay source revision used by this integration package.
+# Updated by .github/workflows/sync-shay.yml.
+SHAY_REPOSITORY=theprojectcreatorof2amthoughts/Shay
+SHAY_COMMIT=12edfe11758a7e9753ab028739772b507b7fe291
