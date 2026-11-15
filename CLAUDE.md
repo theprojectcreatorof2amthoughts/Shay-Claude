@@ -1,71 +1,47 @@
-# Claude Code instructions for Shay
+# Shay-Claude instructions
 
-## Project identity
+This repository integrates Claude Code with the Shay programming language. It is **not** the Shay compiler repository and must not become a second copy of the language implementation.
 
-Shay is its own programming language. Do not treat it as a dialect, alias, or wrapper for another language. Preserve its vocabulary, grammar, file extensions, and tool names.
+## Source of truth
 
-- `gshai` is the compiler.
-- `shaii` is the interpreter.
-- `.shay` is a Shay program.
-- `.shaii` is a reusable Shay library.
-- `.shaz` is a Zeccur task file.
-- `.sho` is a native relocatable object emitted by the compiler's `-ob` mode.
+The canonical compiler, interpreter, C11 runtime, and `siil/` standard library live in:
 
-Read `docs/SYNTAX.md` and `docs/CAPABILITY_SPEC.md` before changing language behavior. The syntax guide describes the current implementation; the capability specification describes goals and must not be mistaken for implemented features.
+https://github.com/theprojectcreatorof2amthoughts/Shay
 
-## Important language rules
+The exact upstream revision used by this package is recorded in `toolchain.lock`.
 
-- Variable declarations use `brew name = literal`.
-- Text output uses `instxt-"text"`.
-- Variable/function output uses `insval-name` or `insval-function(args)`.
-- Functions start with `$declr name(parameters)` and end with `finish`.
-- A numeric-returning function has a `forw expression` body. `forw` always requires an expression.
-- A void function has statement bodies and does not use `forw`.
-- Conditionals use `ifit comparison` and close with `exec`.
-- Comments start with `##`.
-- Zeccurs (`.shaz`) files are variable-free; do not add `brew` declarations to them.
-- A `.shaii` file may import `.shaz`, but may not import another `.shaii` file.
-- Do not invent syntax such as `insvar`, `enddeclr`, `else`, loops, assignment, or string-returning functions. Check the parser before proposing syntax.
+- Run `./install.sh` to install the pinned toolchain.
+- Run `./update.sh` to reinstall/update to the revision currently pinned in the lock file.
+- Set `SHAY_REF` for a one-off test of another upstream branch, tag, or commit.
+- Set `SHAY_PREFIX` to install somewhere other than `$HOME/.local`.
 
-## Imports
+The installer builds Shay and runs its upstream regression tests before installing it.
 
-- `$shaiiport [name.shaii]` imports a library, searching beside the importer, then `SHAY_STDLIB`, then project `siil/` directories.
-- `$shaiiport "path/to/name.shaii"` explicitly imports a disk file relative to the importer (or by absolute path); it does not fall back to `siil/`.
-- `$shazport [name.shaz]` imports a Zeccur task relative to the importer.
-- Duplicate imports load once and circular imports are diagnosed.
+## Claude Code integration
 
-## Toolchain and development
+- Keep Shay-specific authoring guidance in `.claude/skills/shay/SKILL.md`.
+- Keep project-wide Claude Code guidance here.
+- Use the actual installed `gshai` and `shaii` binaries; do not emulate their behavior.
+- Do not claim a syntax feature is supported without checking the pinned upstream toolchain or canonical Shay documentation.
+- Preserve Shay's own vocabulary, grammar, and file extensions.
+- Never translate a Shay request into another language unless the user explicitly asks.
 
-Requirements: C11 and C++20 compilers, GNU Make; CMake 3.20+ is also supported.
+## Repository boundaries
 
-- `make` builds `build/gshai` and `build/shaii`.
-- `make test` builds and runs the regression suite.
-- `make clean` removes generated build output.
-- `cmake -S . -B build-cmake && cmake --build build-cmake --parallel` builds with CMake.
-- `ctest --test-dir build-cmake --output-on-failure` runs the CMake test suite.
-- `build/shaii --check path/to/program.shay` checks source without executing output.
-- `build/shaii path/to/program.shay` interprets source.
-- `build/gshai -o output-name path/to/program.shay` creates a standalone executable.
-- `build/gshai -ob output-name.sho path/to/program.shay` creates a `.sho` object.
-- Compiler flags include `--shaywall`, `--shaywextra`, and `--shayo0` through `--shayo3`.
+This repository may contain Claude Code skills, instructions, installation/update scripts, compatibility checks, and integration workflows.
 
-Use the existing Makefile, CMake configuration, and tests as the source of truth for commands. Do not claim a test passed unless you actually ran it or CI reports success.
+Do **not** copy or independently maintain:
+- `gshai` compiler source,
+- `shaii` interpreter source,
+- the Shay runtime,
+- the Shay standard library,
+- language-level parser or lexer implementations.
 
-## Change discipline
+Language bugs and feature requests belong in the canonical Shay repository. Keep changes here focused on Claude integration and toolchain distribution.
 
-1. Inspect the relevant lexer, parser, AST, interpreter, compiler, imports, tests, and docs before editing.
-2. Keep compiler and interpreter behavior aligned. A syntax feature is incomplete if only one accepts or executes it.
-3. Add or update regression tests for behavior changes and diagnostics.
-4. Keep documentation explicit about what is implemented versus planned.
-5. Avoid unrelated refactors, generated umbrella headers, and unnecessary dependencies.
-6. Never silently change existing syntax or file-format meanings. Propose breaking language changes separately.
-7. Prefer small, reviewable changes with clear commit messages.
-8. Do not merge pull requests or push directly to `main`; use a feature branch and pull request.
+## Verification
 
-## Documentation map
-
-- `docs/SYNTAX.md`: current grammar and syntax examples.
-- `docs/CAPABILITY_SPEC.md`: longer-term language goals and design policy.
-- `siil/README.md`: bundled standard-library modules.
-- `README.md`: project overview and toolchain usage.
-- `tests/run.sh`: executable regression suite.
+- Check shell scripts with `sh -n`.
+- Run `./install.sh` to verify the pinned upstream toolchain can build, pass its regression tests, and install.
+- Do not claim tests passed unless they were actually run or CI reports success.
+- Keep updates reviewable: the scheduled sync workflow opens a pull request and never merges it automatically.
