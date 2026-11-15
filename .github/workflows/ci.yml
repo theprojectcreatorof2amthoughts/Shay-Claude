@@ -1,19 +1,34 @@
-name: Shay CI
+name: Shay-Claude CI
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feat/**", "bot/**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
+  install-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build and run regression suite with Make
-        run: make test
-      - name: Build with CMake
-        run: cmake -S . -B build-cmake && cmake --build build-cmake --parallel
-      - name: Run CTest suite
-        run: ctest --test-dir build-cmake --output-on-failure
+      - name: Check out Shay-Claude
+        uses: actions/checkout@v4
+      - name: Check shell syntax
+        run: |
+          sh -n install.sh
+          sh -n update.sh
+      - name: Validate pinned upstream revision
+        run: |
+          commit="$(sed -n 's/^SHAY_COMMIT=//p' toolchain.lock)"
+          test "${#commit}" -eq 40
+          case "$commit" in
+            *[!0-9a-f]*) echo "Invalid SHAY_COMMIT" >&2; exit 1 ;;
+          esac
+      - name: Build, test, and install pinned Shay
+        run: |
+          ./install.sh
+          "$HOME/.local/bin/gshai" --version
+          "$HOME/.local/bin/shaii" --version
